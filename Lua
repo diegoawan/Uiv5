@@ -1,0 +1,280 @@
+local LIB_URL = "https://raw.githubusercontent.com/diegoawan/IncrementalUiv2test/refs/heads/main/Lua"
+
+local ok, UI = pcall(function()
+    return loadstring(game:HttpGet(LIB_URL))()
+end)
+if not ok or type(UI) ~= "table" then
+    warn("[Demo] Failed to load IncrementalUi: " .. tostring(UI))
+    return
+end
+
+local function buildWindow()
+    local Window = UI:CreateWindow({
+        Name = "Incremental Hub",
+        Subtitle = "v" .. UI.Version,
+        Theme = "GreyWhite",
+        Keybind = Enum.KeyCode.RightControl,
+        Bats = 7,
+        ConfigFolder = "IncrementalUiDemo",
+    })
+
+    Window:Notify({ Title = "Welcome", Content = "Press Right Ctrl to hide or show the window.", Type = "Info", Duration = 5 })
+
+    local Elements = Window:CreateTab("Elements")
+
+    local Buttons = Elements:CreateSection("Buttons & Labels")
+    local statusLabel = Buttons:CreateLabel("Status: idle. Click a button below.")
+    local counter = 0
+    local counterBtn
+    counterBtn = Buttons:CreateButton({
+        Name = "Click me (counter)",
+        Callback = function()
+            counter += 1
+            counterBtn:SetText("Clicked " .. counter .. " times")
+            statusLabel:SetText("Status: counter button clicked.")
+        end,
+    })
+    Buttons:CreateButton({
+        Name = "Fire previous button from code",
+        Callback = function() counterBtn.Fire() end,
+    })
+    Buttons:CreateDivider()
+    local para = Buttons:CreateParagraph({
+        Title = "Paragraph",
+        Content = "Paragraphs wrap long text automatically. Use them for descriptions, changelogs or help text.",
+    })
+    Buttons:CreateButton({
+        Name = "Update paragraph text",
+        Callback = function() para:SetContent("Updated at " .. os.date("%X") .. ".") end,
+    })
+
+    local Toggles = Elements:CreateSection("Toggles")
+    local masterToggle = Toggles:CreateToggle({
+        Name = "Master toggle",
+        CurrentValue = false,
+        ConfigKey = "master",
+        Callback = function(v)
+            statusLabel:SetText("Status: master toggle = " .. tostring(v))
+        end,
+    })
+    Toggles:CreateToggle({ Name = "Enabled by default", CurrentValue = true, ConfigKey = "default_on", Callback = function(v) print("[Demo] default_on:", v) end })
+    Toggles:CreateButton({
+        Name = "Flip master toggle from code",
+        Callback = function() masterToggle.SetValue(not masterToggle.GetValue()) end,
+    })
+
+    local Sliders = Elements:CreateSection("Sliders")
+    Sliders:CreateSlider({ Name = "Integer slider", Range = { 0, 100 }, Increment = 1, CurrentValue = 25, ConfigKey = "int_slider", Callback = function(v) print("[Demo] int:", v) end })
+    Sliders:CreateSlider({ Name = "Decimal slider", Range = { 0, 1 }, Increment = 0.05, CurrentValue = 0.5, ConfigKey = "dec_slider", Callback = function(v) print("[Demo] dec:", v) end })
+    Sliders:CreateSlider({ Name = "WalkSpeed", Range = { 16, 200 }, Increment = 2, CurrentValue = 16, Suffix = " studs/s", ConfigKey = "speed", Callback = function(v)
+        local hum = game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+        if hum then hum.WalkSpeed = v end
+    end })
+
+    local Inputs = Elements:CreateSection("Inputs")
+    local dd
+    dd = Inputs:CreateDropdown({
+        Name = "Dropdown",
+        Options = { "Alpha", "Bravo", "Charlie", "Delta" },
+        CurrentOption = "Bravo",
+        ConfigKey = "dropdown",
+        Callback = function(v) statusLabel:SetText("Status: dropdown = " .. tostring(v)) end,
+    })
+    Inputs:CreateButton({
+        Name = "Refresh dropdown options",
+        Callback = function()
+            dd:Refresh({ "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight" })
+            Window:Notify({ Title = "Dropdown", Content = "Options replaced (scrolls when long).", Type = "Success" })
+        end,
+    })
+    Inputs:CreateTextbox({
+        Name = "Textbox",
+        PlaceholderText = "Type and press Enter",
+        ConfigKey = "textbox",
+        Callback = function(text, enter)
+            if enter then Window:Notify({ Title = "Textbox", Content = "You entered: " .. text, Type = "Info" }) end
+        end,
+    })
+    Inputs:CreateKeybind({
+        Name = "Keybind (click, then press a key)",
+        CurrentKey = Enum.KeyCode.F,
+        ConfigKey = "keybind",
+        Callback = function(key) Window:Notify({ Title = "Keybind", Content = key.Name .. " pressed.", Type = "Info", Duration = 2 }) end,
+    })
+
+    local Effects = Window:CreateTab("Effects")
+
+    local Notifs = Effects:CreateSection("Notifications")
+    Notifs:CreateButton({ Name = "Info", Callback = function() Window:Notify({ Title = "Info", Content = "A neutral message.", Type = "Info" }) end })
+    Notifs:CreateButton({ Name = "Success", Callback = function() Window:Notify({ Title = "Success", Content = "Everything worked.", Type = "Success" }) end })
+    Notifs:CreateButton({ Name = "Warning", Callback = function() Window:Notify({ Title = "Warning", Content = "Something needs attention.", Type = "Warning" }) end })
+    Notifs:CreateButton({ Name = "Error", Callback = function() Window:Notify({ Title = "Error", Content = "Something went wrong.", Type = "Error" }) end })
+    Notifs:CreateButton({
+        Name = "Stack five notifications",
+        Callback = function()
+            for i = 1, 5 do
+                task.delay((i - 1) * 0.25, function()
+                    Window:Notify({ Title = "Notification " .. i, Content = "Long text wraps onto several lines so the card grows to fit its content, as in this one.", Type = ({ "Info", "Success", "Warning", "Error", "Info" })[i], Duration = 4 + i })
+                end)
+            end
+        end,
+    })
+
+    local Bats = Effects:CreateSection("Bats")
+    Bats:CreateSlider({
+        Name = "Bat count", Range = { 0, 20 }, Increment = 1, CurrentValue = 7,
+        Callback = function(v) Window:SetBats(v) end,
+    })
+    Bats:CreateButton({ Name = "Spawn one more bat", Callback = function() Window:SpawnBat() end })
+    Bats:CreateButton({ Name = "Clear all bats", Callback = function() Window:ClearBats() end })
+
+    local Misc = Effects:CreateSection("Window Effects")
+    Misc:CreateButton({ Name = "Shake window", Callback = function() Window:Shake() end })
+    Misc:CreateButton({
+        Name = "Hide for 3 seconds (launcher button appears)",
+        Callback = function()
+            Window:SetVisible(false)
+            task.delay(3, function() Window:SetVisible(true) end)
+        end,
+    })
+    Misc:CreateButton({
+        Name = "Toggle visibility (use the button or Right Ctrl to bring it back)",
+        Callback = function() Window:Toggle() end,
+    })
+
+    local Themes = Window:CreateTab("Themes")
+    local ThemeSec = Themes:CreateSection("Built-in Themes")
+    ThemeSec:CreateDropdown({
+        Name = "Theme",
+        Options = { "GreyWhite", "Midnight", "Graphite", "Light", "Amethyst", "Emerald", "Rose" },
+        CurrentOption = "GreyWhite",
+        Callback = function(name) Window:SetTheme(name) end,
+    })
+    ThemeSec:CreateButton({
+        Name = "Cycle through every theme",
+        Callback = function()
+            task.spawn(function()
+                for _, n in ipairs({ "Midnight", "Graphite", "Light", "Amethyst", "Emerald", "Rose", "GreyWhite" }) do
+                    Window:SetTheme(n)
+                    task.wait(1.2)
+                end
+            end)
+        end,
+    })
+
+    local CustomSec = Themes:CreateSection("Custom Theme")
+    CustomSec:CreateButton({
+        Name = "Apply custom orange accent",
+        Callback = function()
+            Window:SetCustomTheme({ Accent = Color3.fromRGB(255, 140, 50), AccentText = Color3.fromRGB(30, 20, 10) })
+        end,
+    })
+    CustomSec:CreateButton({
+        Name = "Apply custom teal accent",
+        Callback = function()
+            Window:SetCustomTheme({ Accent = Color3.fromRGB(45, 212, 191), AccentText = Color3.fromRGB(5, 30, 28) })
+        end,
+    })
+
+    local Config = Window:CreateTab("Config")
+    local ConfigSec = Config:CreateSection("In-memory Configs")
+    local cfgName = "default"
+    local cfgDropdown
+
+    ConfigSec:CreateTextbox({ Name = "Config name", CurrentValue = "default", Callback = function(v) cfgName = v end })
+    ConfigSec:CreateButton({
+        Name = "Save current settings",
+        Callback = function()
+            if cfgName == "" then return Window:Notify({ Title = "Config", Content = "Enter a name first.", Type = "Warning" }) end
+            Window:SaveConfig(cfgName)
+            local names = Window:GetConfigs()
+            if cfgDropdown then cfgDropdown:Refresh(names) cfgDropdown.SetValue(cfgName) end
+            Window:Notify({ Title = "Config saved", Content = '"' .. cfgName .. '" stored in memory.', Type = "Success" })
+        end,
+    })
+    cfgDropdown = ConfigSec:CreateDropdown({ Name = "Saved configs", Options = { "(none)" }, CurrentOption = "(none)" })
+    ConfigSec:CreateButton({
+        Name = "Load selected config",
+        Callback = function()
+            local sel = cfgDropdown.GetValue()
+            local okLoad = Window:LoadConfig(sel)
+            Window:Notify({ Title = "Config", Content = okLoad and ('Loaded "' .. tostring(sel) .. '".') or "Nothing to load.", Type = okLoad and "Success" or "Warning" })
+        end,
+    })
+    ConfigSec:CreateButton({
+        Name = "Delete selected config",
+        Callback = function()
+            Window:DeleteConfig(cfgDropdown.GetValue())
+            local names = Window:GetConfigs()
+            cfgDropdown:Refresh(#names > 0 and names or { "(none)" })
+        end,
+    })
+
+    local FileSec = Config:CreateSection("Export & Files")
+    FileSec:CreateButton({
+        Name = "Export config as JSON (prints and copies)",
+        Callback = function()
+            local json = Window:ExportConfig()
+            print("[Demo] Config JSON:", json)
+            pcall(function() setclipboard(json) end)
+            Window:Notify({ Title = "Exported", Content = "JSON printed to the console and copied if supported.", Type = "Info" })
+        end,
+    })
+    FileSec:CreateButton({
+        Name = "Save config to file",
+        Callback = function()
+            local okSave = Window:SaveToFile("demo")
+            Window:Notify({ Title = "File", Content = okSave and "Saved IncrementalUiDemo/demo.json" or "writefile is not available here.", Type = okSave and "Success" or "Warning" })
+        end,
+    })
+    FileSec:CreateButton({
+        Name = "Load config from file",
+        Callback = function()
+            local okLoad = Window:LoadFromFile("demo")
+            Window:Notify({ Title = "File", Content = okLoad and "Config loaded from file." or "No saved file found (or readfile unavailable).", Type = okLoad and "Success" or "Warning" })
+        end,
+    })
+    FileSec:CreateButton({
+        Name = "Reset a few controls from code",
+        Callback = function()
+            Window:LoadConfig({ master = true, int_slider = 80, dropdown = "Delta", textbox = "set from LoadConfig", keybind = "G" })
+        end,
+    })
+
+    local Settings = Window:CreateTab("Settings")
+    local WinSec = Settings:CreateSection("Window Settings")
+    WinSec:CreateKeybind({
+        Name = "Menu toggle key",
+        CurrentKey = Enum.KeyCode.RightControl,
+        Callback = function() end,
+    })
+    WinSec:CreateButton({
+        Name = "Set menu key to Insert",
+        Callback = function()
+            Window:SetKeybind(Enum.KeyCode.Insert)
+            Window:Notify({ Title = "Keybind", Content = "Menu key is now Insert.", Type = "Success" })
+        end,
+    })
+    WinSec:CreateButton({
+        Name = "Destroy window",
+        Callback = function() Window:Destroy() end,
+    })
+
+    local Search = Settings:CreateSection("Search Test")
+    Search:CreateLabel("Type 'fly' or 'esp' into the sidebar search box to filter rows on this tab.")
+    for _, n in ipairs({ "Fly speed", "Fly toggle", "ESP boxes", "ESP names", "Teleport home", "Auto farm" }) do
+        Search:CreateToggle({ Name = n, CurrentValue = false })
+    end
+
+    Window:Notify({ Title = "Demo ready", Content = "Try every tab. Use the search box in the sidebar too.", Type = "Success", Duration = 6 })
+    return Window
+end
+
+UI:CreateKeySystem({
+    Key = { "Test", "Demo123" },
+    Title = "Incremental Hub",
+    Subtitle = "Enter your key to continue",
+    GetKeyLink = "https://example.com/get-key",
+    Theme = "GreyWhite",
+    OnSuccess = buildWindow,
+})
